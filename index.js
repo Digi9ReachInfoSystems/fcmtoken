@@ -21,6 +21,11 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// Default route to indicate that the server is running
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
+
 // Define the route for sending notifications
 app.post("/send-notification", async (req, res) => {
   const { userReference, couponName } = req.body;
