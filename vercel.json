@@ -1,18 +1,1 @@
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/index.js"
-    }
-  ],
-  "env": {
-    "FIREBASE_SERVICE_ACCOUNT": "@firebase_service_account"
-  }
-}
+{ "version": 2, "rewrites": [{ "source": "/(.*)", "destination": "/api" }] }
