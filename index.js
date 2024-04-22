@@ -5,6 +5,12 @@ require("dotenv").config();
 
 app.use(express.json()); // Middleware to parse JSON bodies
 
+// Check if the required environment variable is loaded
+if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+  console.error("FIREBASE_SERVICE_ACCOUNT environment variable is missing.");
+  process.exit(1); // Exit if the configuration is not available
+}
+
 // Initialize Firebase Admin with service account
 const serviceAccount = JSON.parse(
   Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("ascii")
@@ -15,6 +21,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// Define the route for sending notifications
 app.post("/send-notification", async (req, res) => {
   const { userReference, couponName } = req.body;
 
@@ -25,33 +32,27 @@ app.post("/send-notification", async (req, res) => {
   }
 
   try {
-    console.log("Fetching user document by reference:", userReference);
     const userDoc = await db.collection("Users").doc(userReference).get();
     if (!userDoc.exists) {
-      console.log("No user found for the given reference:", userReference);
       return res.status(404).send({ message: "User not found" });
     }
 
-    console.log("Accessing FCM tokens subcollection for user:", userReference);
     const tokensCollection = await db
       .collection("Users")
       .doc(userReference)
       .collection("fcm_tokens")
       .get();
     if (tokensCollection.empty) {
-      console.log("No FCM tokens found for user:", userReference);
       return res.status(404).send({ message: "No FCM tokens found for user" });
     }
 
     const userToken = tokensCollection.docs[0].data().fcm_token;
     if (!userToken) {
-      console.log("FCM token in the first document is null or undefined.");
       return res
         .status(404)
         .send({ message: "FCM token not found or invalid" });
     }
 
-    console.log("FCM Token to be used for sending notification:", userToken);
     const message = {
       notification: {
         title: "Special Offer",
@@ -60,25 +61,13 @@ app.post("/send-notification", async (req, res) => {
       token: userToken,
     };
 
-    console.log("Sending notification with the message:", message);
     const response = await admin.messaging().send(message);
-    console.log("Notification sent successfully, Firebase response:", response);
     res.status(200).send({
       message: "Notification sent successfully",
       response: response,
     });
   } catch (error) {
-    console.error("Error sending notification:", error); // Debug: Print error to console
-    if (
-      error.errorInfo &&
-      error.errorInfo.code === "messaging/registration-token-not-registered"
-    ) {
-      // Token is no longer valid
-      console.log(
-        "The FCM token is no longer valid and will be marked or removed."
-      );
-      // Here you could mark the token as invalid in your database or attempt to notify the client to regenerate a token
-    }
+    console.error("Error sending notification:", error);
     res.status(500).send({
       message: "Failed to send notification",
       error: error.message,
