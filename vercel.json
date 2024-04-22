@@ -8,8 +8,15 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ]
+  ],
+  "env": {
+    "FIREBASE_SERVICE_ACCOUNT": "@firebase_service_account"
+  }
 }
