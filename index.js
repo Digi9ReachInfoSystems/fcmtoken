@@ -1,10 +1,14 @@
 const express = require("express");
 const admin = require("firebase-admin");
 const app = express();
+require("dotenv").config();
+
 app.use(express.json()); // Middleware to parse JSON bodies
 
 // Initialize Firebase Admin with service account
-const serviceAccount = require("C:/Users/offic/OneDrive/Desktop/fcmnotifications/srtgroceries-4a01a-firebase-adminsdk-x019d-3a5b4491bc.json");
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("ascii")
+);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
