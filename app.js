@@ -80,6 +80,58 @@ app.post("/send-notification", async (req, res) => {
   }
 });
 
+app.post("/send-notification-to-all", async (req, res) => {
+  const { couponName } = req.body;
+  if (!couponName) {
+    return res.status(400).send({ message: "Missing couponName" });
+  }
+
+  try {
+    const usersCollection = await db.collection("Users").get();
+    if (usersCollection.empty) {
+      return res.status(404).send({ message: "No users found" });
+    }
+
+    let failureCount = 0;
+    let successCount = 0;
+    for (const userDoc of usersCollection.docs) {
+      const tokensSnapshot = await userDoc.ref.collection("fcm_tokens").get();
+      if (!tokensSnapshot.empty) {
+        const userToken = tokensSnapshot.docs[0].data().fcm_token;
+        if (userToken) {
+          const message = {
+            notification: {
+              title: "Special Offer",
+              body: `Hello! Here's a special coupon just for you: ${couponName}`,
+            },
+            token: userToken,
+          };
+
+          try {
+            await admin.messaging().send(message);
+            successCount++;
+          } catch (error) {
+            console.error("Failed to send notification to one user:", error);
+            failureCount++;
+          }
+        }
+      }
+    }
+
+    res.status(200).send({
+      message: "Notifications sent",
+      successCount: successCount,
+      failureCount: failureCount,
+    });
+  } catch (error) {
+    console.error("Error sending notifications to all:", error);
+    res.status(500).send({
+      message: "Failed to send notifications to all",
+      error: error.message,
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
