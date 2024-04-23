@@ -1,8 +1,9 @@
 const express = require("express");
 const admin = require("firebase-admin");
 const app = express();
+const cors = require("cors"); 
 require("dotenv").config();
-
+app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 //sandesh
 // Check if the required environment variable is loaded
@@ -79,12 +80,13 @@ app.post("/send-notification", async (req, res) => {
     });
   }
 });
-
 app.post("/send-common-notification", async (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, imageUrl } = req.body;
 
-  if (!title || !description) {
-    return res.status(400).send({ message: "Missing title or description" });
+  if (!title || !description || !imageUrl) {
+    return res
+      .status(400)
+      .send({ message: "Missing title, description or imageUrl" });
   }
 
   try {
@@ -105,6 +107,26 @@ app.post("/send-common-notification", async (req, res) => {
             notification: {
               title: title,
               body: description,
+            },
+            android: {
+              notification: {
+                imageUrl: imageUrl, // Android-specific image URL
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  "mutable-content": 1, // Necessary for iOS to handle the image
+                },
+              },
+              fcm_options: {
+                image: imageUrl, // APNs-specific image URL
+              },
+            },
+            webpush: {
+              headers: {
+                image: imageUrl, // Web push-specific image URL
+              },
             },
             token: userToken,
           };
